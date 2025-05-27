@@ -1,0 +1,36 @@
+import subprocess
+import sys
+import os
+
+env_name = "anivenv"
+env_path = os.path.abspath(env_name)
+pip_path = os.path.join(env_path, "bin", "pip")
+python_path = os.path.join(env_path, "bin", "python")
+
+# Step 1: Create virtual environment
+print(f"🔧 Creating virtual environment '{env_name}'...")
+subprocess.run([sys.executable, "-m", "venv", env_name], check=True)
+
+# Step 2: Check if pip exists
+if not os.path.exists(pip_path):
+    print("⚠️  pip not found in virtual environment.")
+    print("🔄 Attempting to install pip using ensurepip...")
+
+    # Try installing pip using ensurepip
+    subprocess.run([python_path, "-m", "ensurepip", "--upgrade"], check=True)
+
+    if not os.path.exists(pip_path):
+        print("❌ Failed to install pip. Please ensure 'python3-venv' and 'python3-pip' are installed on your system.")
+        sys.exit(1)
+
+print("✅ pip is ready in the virtual environment.")
+
+# Step 3: Install a package
+subprocess.run([pip_path, "install", "requests"], check=True)
+print("✅ 'requests' package installed.")
+
+# Step 4: Freeze dependencies
+with open("requirements.txt", "w") as f:
+    subprocess.run([pip_path, "freeze"], stdout=f)
+
+print("📄 requirements.txt created.")
