@@ -1,0 +1,200 @@
+Great! Let's break down the PowerShell Scripting syllabus into structured, easy-to-digest parts. I'll guide you through each topic with explanations, examples, and small exercises. You can ask for more examples or dive deeper anytime.
+
+🧠 1. What is Windows PowerShell?
+PowerShell is a task-based command-line shell and scripting language built on .NET. It's designed for system administration and automating tasks.
+
+Combines the power of Unix-like shells with scripting capabilities.
+
+Works with cmdlets – small .NET-based commands.
+
+Example:
+
+powershell
+Copy
+Edit
+Get-Process
+🏛️ 2. Windows PowerShell Architecture
+PowerShell has four key components:
+
+Hosting Layer – Runs in consoles, ISE, Visual Studio Code, etc.
+
+Engine – Handles parsing, pipeline processing, execution.
+
+Cmdlets & Providers – Interact with data sources like file systems, registry.
+
+.NET Runtime – Executes the compiled code.
+
+🔧 3. Understanding the Commands
+Cmdlets are in Verb-Noun format.
+
+You can use Get-Command to list available commands.
+
+powershell
+Copy
+Edit
+Get-Command
+🧾 4. Identifying the Parameters
+Use Get-Help to learn about command parameters.
+
+powershell
+Copy
+Edit
+Get-Help Get-Process -Full
+Try tab-completion to explore parameters:
+
+powershell
+Copy
+Edit
+Get-Service -Name <TAB>
+🔗 5. Working with the Pipeline
+The pipeline (|) passes output from one command to another.
+
+powershell
+Copy
+Edit
+Get-Process | Where-Object {$_.CPU -gt 10}
+📤 6. Exporting, Importing, and Converting Data
+Export to CSV/JSON/XML:
+
+powershell
+Copy
+Edit
+Get-Process | Export-Csv process.csv
+Import:
+
+powershell
+Copy
+Edit
+Import-Csv process.csv
+Convert:
+
+powershell
+Copy
+Edit
+Get-Service | ConvertTo-Json
+🚿 7. Filtering Objects Out of the Pipeline
+Use Where-Object and Select-Object.
+
+powershell
+Copy
+Edit
+Get-Process | Where-Object { $_.WorkingSet -gt 50000000 } | Select-Object Name, ID
+🎨 8. Formatting Output
+powershell
+Copy
+Edit
+Get-Process | Format-Table Name, ID, CPU
+Get-Service | Format-List
+📁 9. Redirecting Formatted Output
+powershell
+Copy
+Edit
+Get-Process | Out-File "processes.txt"
+Get-Process | Out-Printer
+📦 10. Creating Your Own Module
+Create a .psm1 file:
+
+powershell
+Copy
+Edit
+function Hello-User { param($Name) "Hello $Name" }
+Save as MyModule.psm1
+
+Use:
+
+powershell
+Copy
+Edit
+Import-Module .\MyModule.psm1
+Hello-User -Name "Alex"
+✍️ 11. Preparing for Scripting
+Use .ps1 file for scripts.
+
+Start with:
+
+powershell
+Copy
+Edit
+# MyScript.ps1
+Write-Output "Script Started"
+🧮 12. Types of Variables
+powershell
+Copy
+Edit
+$int = 42
+$string = "Hello"
+$array = @(1, 2, 3)
+$hashtable = @{Name="Alex"; Age=30}
+🗃️ 13. Using Variables
+powershell
+Copy
+Edit
+$name = "Alex"
+Write-Output "Welcome $name"
+🌍 14. Scope of Variables
+Global, Local, Script, Private
+
+powershell
+Copy
+Edit
+$global:name = "GlobalName"
+🔒 15. Scripting Security
+Check policy:
+
+powershell
+Copy
+Edit
+Get-ExecutionPolicy
+Set it (as admin):
+
+powershell
+Copy
+Edit
+Set-ExecutionPolicy RemoteSigned
+🌐 16. What is PowerShell Remoting?
+Run commands on remote systems.
+
+powershell
+Copy
+Edit
+Enter-PSSession -ComputerName Server01
+Invoke-Command -ComputerName Server01 -ScriptBlock { Get-Process }
+🔁 17. Loops Supported in PowerShell
+for, foreach, while, do-while
+
+Example:
+
+powershell
+Copy
+Edit
+for ($i=1; $i -le 5; $i++) { Write-Output "Count $i" }
+🔧 18. Understanding PowerShell Functions
+powershell
+Copy
+Edit
+function Get-Greeting {
+    param($name)
+    "Hello, $name!"
+}
+📄 19. Creating Profile Scripts
+Location:
+
+powershell
+Copy
+Edit
+$PROFILE
+Add custom aliases/functions:
+
+powershell
+Copy
+Edit
+function Start-Work { cd C:\Projects; code . }
+Would you like:
+
+A quiz after each section?
+
+Code practice tasks?
+
+Sample scripts to automate tasks?
+
+Let me know how you'd like to continue!
