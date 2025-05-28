@@ -29,6 +29,109 @@ print("✅ pip is ready in the virtual environment.")
 subprocess.run([pip_path, "install", "requests"], check=True)
 print("✅ 'requests' package installed.")
 
+
+------------------
+
+// Jenkins Pipeline syntax
+pipeline {
+    // Defines where the pipeline will run. 'any' means any available agent.
+    // You might want to specify a label for a specific type of agent, e.g., agent { label 'my-python-agent' }
+    agent any
+
+    // Environment variables that can be used throughout the pipeline
+    environment {
+        // Name of the virtual environment
+        VENV_NAME = "my_pandas_env"
+        // Variables to store the path to the virtual environment's pip and activate script
+        VENV_PIP = ""
+        VENV_ACTIVATE_CMD = ""
+    }
+
+    // Stages define a series of steps to be executed
+    stages {
+        stage('Clean Workspace') {
+            steps {
+                // Clean the Jenkins workspace before starting to ensure a fresh build
+                cleanWs()
+                echo "Workspace cleaned."
+            }
+        }
+
+        stage('Setup Python Virtual Environment') {
+            steps {
+                script {
+                    // Check if the agent is Unix-like (Linux/macOS) or Windows
+                    if (isUnix()) {
+                        echo "Detected Unix-like system. Creating virtual environment..."
+                        // Use 'python3 -m venv' for creating the virtual environment on Unix
+                        sh "python3 -m venv ${env.VENV_NAME}"
+                        // Set the path to the virtual environment's pip executable
+                        env.VENV_PIP = "${env.VENV_NAME}/bin/pip"
+                        // Set the activation command for Unix-like systems
+                        env.VENV_ACTIVATE_CMD = "source ${env.VENV_NAME}/bin/activate"
+                    } else if (isWindows()) {
+                        echo "Detected Windows system. Creating virtual environment..."
+                        // Use 'py -m venv' for creating the virtual environment on Windows
+                        bat "py -m venv ${env.VENV_NAME}"
+                        // Set the path to the virtual environment's pip executable
+                        env.VENV_PIP = "${env.VENV_NAME}\\Scripts\\pip.exe"
+                        // Set the activation command for Windows batch
+                        env.VENV_ACTIVATE_CMD = "${env.VENV_NAME}\\Scripts\\activate.bat"
+                    } else {
+                        // Fail the pipeline if the OS is not supported
+                        error "Unsupported operating system for virtual environment creation."
+                    }
+                    echo "Virtual environment '${env.VENV_NAME}' created successfully."
+                }
+            }
+        }
+
+        stage('Install Pandas') {
+            steps {
+                script {
+                    echo "Installing pandas in '${env.VENV_NAME}'..."
+                    // Use the determined VENV_PIP path to install pandas
+                    // For Windows, directly calling pip.exe from the venv path is often more reliable
+                    // than attempting to activate.bat in a separate 'bat' step.
+                    if (isUnix()) {
+                        sh "${env.VENV_ACTIVATE_CMD} && ${env.VENV_PIP} install pandas"
+                    } else { // Windows
+                        bat "${env.VENV_PIP} install pandas"
+                    }
+                    echo "Pandas installed successfully."
+                }
+            }
+        }
+
+        stage('Generate Requirements.txt') {
+            steps {
+                script {
+                    echo "Generating requirements.txt..."
+                    // Use the determined VENV_PIP path to freeze dependencies
+                    if (isUnix()) {
+                        sh "${env.VENV_ACTIVATE_CMD} && ${env.VENV_PIP} freeze > requirements.txt"
+                    } else { // Windows
+                        bat "${env.VENV_PIP} freeze > requirements.txt"
+                    }
+                    echo "requirements.txt created successfully."
+                }
+            }
+        }
+    }
+
+    // Post-build actions, always executed regardless of stage success/failure
+    post {
+        always {
+            echo "Pipeline finished."
+            // Archive the generated requirements.txt file so it's accessible in Jenkins
+            archiveArtifacts artifacts: 'requirements.txt', fingerprint: true
+        }
+        failure {
+            echo "Pipeline failed! Check the logs for errors."
+        }
+    }
+}
+
 # Step 4: Freeze dependencies
 with open("requirements.txt", "w") as f:
     subprocess.run([pip_path, "freeze"], stdout=f)
