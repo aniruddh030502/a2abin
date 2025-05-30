@@ -1,0 +1,146 @@
+
+import os
+import re
+import gzip
+import json
+import hashlib
+from datetime import datetime
+from pathlib import Path
+import pandas as pd
+import requests
+from cryptography.fernet import Fernet
+
+# Q1. Delete empty files and log paths
+def delete_empty_files_log(directory):
+    log_file = 'deleted_files.log'
+    with open(log_file, 'w') as log:
+        for dirpath, _, filenames in os.walk(directory):
+            for file in filenames:
+                filepath = os.path.join(dirpath, file)
+                if os.path.isfile(filepath) and os.path.getsize(filepath) == 0:
+                    log.write(f"{filepath}\n")
+                    os.remove(filepath)
+
+# Q2. Compress .log files larger than 5MB
+def compress_large_logs(src_dir, dest_dir):
+    for dirpath, _, filenames in os.walk(src_dir):
+        for file in filenames:
+            if file.endswith(".log"):
+                full_path = os.path.join(dirpath, file)
+                if os.path.getsize(full_path) > 5 * 1024 * 1024:
+                    rel_path = os.path.relpath(full_path, src_dir)
+                    dest_path = os.path.join(dest_dir, rel_path + ".gz")
+                    os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+                    with open(full_path, 'rb') as f_in, gzip.open(dest_path, 'wb') as f_out:
+                        f_out.writelines(f_in)
+
+# Q3. Move files based on extension
+def organize_by_extension(directory):
+    for file in os.listdir(directory):
+        filepath = os.path.join(directory, file)
+        if os.path.isfile(filepath):
+            ext = os.path.splitext(file)[1][1:] or "no_ext"
+            target_dir = os.path.join(directory, ext)
+            os.makedirs(target_dir, exist_ok=True)
+            os.rename(filepath, os.path.join(target_dir, file))
+
+# Q4. Log world-writable files
+def log_world_writable_files(directory):
+    for dirpath, _, filenames in os.walk(directory):
+        for file in filenames:
+            filepath = os.path.join(dirpath, file)
+            if os.path.isfile(filepath) and os.stat(filepath).st_mode & 0o002:
+                print(f"World-writable: {filepath}")
+
+# Q5. Parse Apache log
+apache_pattern = re.compile(r'(\d+\.\d+\.\d+\.\d+) - - \[(.*?)\] "(\w+) (.*?) HTTP/\d\.\d" (\d{3})')
+def parse_apache_logs(logfile):
+    data = []
+    with open(logfile) as f:
+        for line in f:
+            match = apache_pattern.search(line)
+            if match:
+                ip, date, method, url, status = match.groups()
+                data.append([ip, date, method, url, int(status)])
+    return pd.DataFrame(data, columns=["IP", "Date", "Method", "URL", "Status"])
+
+# Q6. Validate using regex
+pattern_mobile = re.compile(r'^[6-9]\d{9}$')
+pattern_pan = re.compile(r'^[A-Z]{5}\d{4}[A-Z]$')
+pattern_email = re.compile(r'^[\w.-]+@[\w.-]+\.\w+$')
+
+def validate_data(mobile, pan, email):
+    return all([
+        bool(pattern_mobile.fullmatch(mobile)),
+        bool(pattern_pan.fullmatch(pan)),
+        bool(pattern_email.fullmatch(email))
+    ])
+
+# Q7. Login and download paginated data
+
+def fetch_paginated_json(base_url, login_url, payload, headers):
+    session = requests.Session()
+    session.post(login_url, data=payload, headers=headers)
+    all_data = []
+    page = 1
+    while True:
+        res = session.get(f"{base_url}?page={page}")
+        if res.status_code != 200:
+            break
+        data = res.json()
+        if not data:
+            break
+        all_data.extend(data)
+        page += 1
+    df = pd.DataFrame(all_data)
+    df.to_csv("output.csv", index=False)
+
+# Q9. Process large CSV in chunks
+
+def aggregate_sales_per_region(file_path):
+    chunks = pd.read_csv(file_path, chunksize=100000)
+    summary = pd.DataFrame()
+    for chunk in chunks:
+        grouped = chunk.groupby("Region")["Sales"].sum()
+        summary = summary.add(grouped, fill_value=0)
+    print(summary)
+
+# Q13. Filter large log file by error pattern
+
+def filter_errors(large_log, output_file, error_pattern):
+    pattern = re.compile(error_pattern)
+    with open(large_log) as fin, open(output_file, 'w') as fout:
+        for line in fin:
+            if pattern.search(line):
+                fout.write(line)
+
+# Q15. Compute file hashes
+
+def generate_file_hashes(directory, hash_file):
+    hashes = {}
+    for dirpath, _, filenames in os.walk(directory):
+        for file in filenames:
+            filepath = os.path.join(dirpath, file)
+            hasher = hashlib.sha256()
+            with open(filepath, 'rb') as f:
+                for chunk in iter(lambda: f.read(8192), b''):
+                    hasher.update(chunk)
+            hashes[os.path.relpath(filepath, directory)] = hasher.hexdigest()
+    with open(hash_file, 'w') as f:
+        json.dump(hashes, f, indent=2)
+
+# Q17. Encrypt .txt files using Fernet
+
+def encrypt_txt_files(directory):
+    key = Fernet.generate_key()
+    cipher = Fernet(key)
+    with open("secret.key", "wb") as keyfile:
+        keyfile.write(key)
+    for file in os.listdir(directory):
+        if file.endswith(".txt"):
+            filepath = os.path.join(directory, file)
+            with open(filepath, 'rb') as f:
+                data = f.read()
+            encrypted = cipher.encrypt(data)
+            with open(filepath + ".enc", 'wb') as f:
+                f.write(encrypted)
