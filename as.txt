@@ -1,0 +1,23 @@
+provider "azurerm" {
+  features {}
+}
+
+data "azurerm_client_config" "current" {}
+
+# Resource Group (optional — could be subscription-wide too)
+resource "azurerm_resource_group" "example" {
+  name     = "tf-role-rg"
+  location = "eastus"
+}
+
+# Get the Azure AD User Object
+data "azuread_user" "user" {
+  user_principal_name = "someone@example.com"  # replace with actual user email
+}
+
+# Assign Contributor Role at Resource Group Scope
+resource "azurerm_role_assignment" "example" {
+  scope                = azurerm_resource_group.example.id
+  role_definition_name = "Contributor"
+  principal_id         = data.azuread_user.user.object_id
+}
